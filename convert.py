@@ -66,7 +66,7 @@ def load_visit(timeline_obj):
     location_lon = location.get('longitudeE7', None)
     place_id = location.get('placeId', None)
     address = location.get('address', None)
-    name = location.get('address', None)
+    name = location.get('name', None)
     start_time = visit['duration'].get('startTimestamp', None)
     end_time = visit['duration'].get('endTimestamp', None)
 
