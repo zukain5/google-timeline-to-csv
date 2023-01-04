@@ -4,10 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+pandas = "*"
 
 [dev-packages]
 flake8 = "*"
 autopep8 = "*"
+ipykernel = "*"
 
 [requires]
 python_version = "3.11"
