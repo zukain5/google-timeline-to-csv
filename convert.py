@@ -1,5 +1,6 @@
 import argparse
 import json
+import pathlib
 import sys
 import traceback
 
@@ -40,7 +41,7 @@ def load_activity(timeline_obj):
     end_time = activity['duration'].get('endTimestamp', None)
     distance = activity.get('distance', None)
     activity_type = activity.get('activityType', None)
-    
+
     return pd.DataFrame(
         [[
             timeline_type,
@@ -55,7 +56,6 @@ def load_activity(timeline_obj):
         ]],
         columns=ACTIVITY_COLS,
     )
-
 
 
 def load_visit(timeline_obj):
@@ -117,24 +117,23 @@ def load_timeline_obj(timeline_obj):
 def load_monthly_json(path):
     with open(path, 'r') as f:
         location_history = json.load(f)
-    
+
     activity_df = pd.DataFrame([], columns=ACTIVITY_COLS)
     visit_df = pd.DataFrame([], columns=VISIT_COLS)
-    
+
     for timeline_obj in location_history['timelineObjects']:
         timeline_row = load_timeline_obj(timeline_obj)
-        
+
         match timeline_row.loc[0, 'timeline_type']:
             case 'activity':
                 activity_df = pd.concat([activity_df, timeline_row], axis=0, ignore_index=True)
             case 'visit':
                 visit_df = pd.concat([visit_df, timeline_row], axis=0, ignore_index=True)
-        
+
     return {
         'activity': activity_df,
         'visit': visit_df,
     }
-    
 
 
 def main():
@@ -142,19 +141,29 @@ def main():
         description='Convert Google timeline data to csv.'
     )
 
-    parser.add_argument('input', help='input json file path')
+    parser.add_argument('input', help='input folder (Semantic Location History)')
     parser.add_argument('output', help='''
         output directory path (not file path because the program outputs mutiple files)
     ''')
-    
+
     args = parser.parse_args()
 
-    monthly_data = load_monthly_json(args.input)
+    activity_df = pd.DataFrame([], columns=ACTIVITY_COLS)
+    visit_df = pd.DataFrame([], columns=VISIT_COLS)
 
-    activity_df = monthly_data['activity']
-    visit_df = monthly_data['visit']
+    input_dir = pathlib.Path(args.input)
 
+    for monthly_json in input_dir.glob('**/*.json'):
+        monthly_data = load_monthly_json(monthly_json)
+        activity_df = pd.concat([activity_df, monthly_data['activity']], axis=0, ignore_index=True)
+        visit_df = pd.concat([visit_df, monthly_data['visit']], axis=0, ignore_index=True)
+
+    activity_df = activity_df.sort_values('start_time')
+    activity_df = activity_df.reset_index(drop=True)
     activity_df.to_csv(f'{args.output}/activity.csv')
+
+    visit_df = visit_df.sort_values('start_time')
+    visit_df = visit_df.reset_index(drop=True)
     visit_df.to_csv(f'{args.output}/visit.csv')
 
 
